@@ -1,0 +1,19 @@
+{
+  "fun": {
+    "prefix": "fun",
+    "body": ["function() ${0} end"],
+    "description": "匿名函数"
+  },
+  "reqp": {
+    "prefix": "reqp",
+    "body": [
+      "local ok, ${2:module} = pcall(require, '${1:module_name}')",
+      "if not ok then",
+      "  vim.notify('not found ${1:module_name}')",
+      "  return",
+      "end",
+      "$0"
+    ],
+    "description": "安全加载 Lua 模块"
+  }
+}
