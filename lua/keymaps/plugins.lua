@@ -129,6 +129,18 @@ map('n', '<leader>ghr', function() require('gitsigns').reset_hunk() end, { desc 
 map('n', '<leader>ghp', function() require('gitsigns').preview_hunk() end, { desc = 'Git/Hunk: 预览当前变更块' })
 map(
   'n',
+  '<leader>ghi',
+  function() require('gitsigns').preview_hunk_inline() end,
+  { desc = 'Git/Hunk: 行内预览具体改动' }
+)
+map(
+  'n',
+  '<leader>ghd',
+  function() require('gitsigns').diffthis() end,
+  { desc = 'Git: 对比当前文件' }
+)
+map(
+  'n',
   '<leader>ghb',
   function() require('gitsigns').blame_line({ full = true }) end,
   { desc = 'Git/Hunk: 查看当前行完整记录' }

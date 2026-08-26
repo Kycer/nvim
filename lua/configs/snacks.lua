@@ -209,6 +209,7 @@ local picker = {
       follow_file = false,
       auto_close = false,
       ignored = true,
+      exclude = { '.git' },
       focus = 'list',
       layout = { preset = 'sidebar', preview = false },
       config = function(opts)

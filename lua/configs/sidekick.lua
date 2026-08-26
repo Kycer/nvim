@@ -10,8 +10,9 @@ return {
       split = { width = 65, height = 20 },
     },
     mux = {
-      -- backend = 'zellij',
-      enabled = false,
+      backend = 'tmux',
+      create = 'terminal',
+      enabled = true,
     },
   },
 }

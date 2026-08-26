@@ -2,7 +2,8 @@
 return {
   cmd = { 'rust-analyzer' },
   filetypes = { 'rust' },
-  root_markers = { 'Cargo.toml', 'rust-project.json', '.git' },
+  -- 优先复用仓库级 client，避免 workspace 内每个 crate 启动一个 rust-analyzer。
+  root_markers = { 'rust-project.json', '.git', 'Cargo.toml' },
   settings = {
     ['rust-analyzer'] = {
       imports = {
@@ -10,20 +11,27 @@ return {
         prefix = 'self',
       },
       cargo = {
-        allFeatures = true,
-        loadOutDirsFromCheck = true,
-        runBuildScripts = true,
+        buildScripts = { enable = true },
       },
       check = {
         command = 'clippy',
         extraArgs = { '--no-deps' },
+        workspace = false,
       },
       procMacro = { enable = true },
+      completion = {
+        fullFunctionSignatures = { enable = true },
+      },
       inlayHints = {
-        enable = true,
-        showParameterNames = true,
-        parameterHintsPrefix = '<- ',
-        otherHintsPrefix = '=> ',
+        parameterHints = { enable = true },
+        typeHints = { enable = true },
+        chainingHints = { enable = true },
+        closureReturnTypeHints = { enable = 'with_block' },
+        lifetimeElisionHints = {
+          enable = 'skip_trivial',
+          useParameterNames = true,
+        },
+        maxLength = 40,
       },
     },
   },
