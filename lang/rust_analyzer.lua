@@ -22,6 +22,9 @@ return {
       completion = {
         fullFunctionSignatures = { enable = true },
       },
+      diagnostics = {
+        disabled = { 'inactive-code' },
+      },
       inlayHints = {
         parameterHints = { enable = true },
         typeHints = { enable = true },

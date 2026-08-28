@@ -206,7 +206,8 @@ local picker = {
       patterns = project_markers,
     },
     explorer = {
-      follow_file = false,
+      -- 打开 Explorer 时定位当前文件，并在切换 Buffer 后自动跟随。
+      follow_file = true,
       auto_close = false,
       ignored = true,
       exclude = { '.git' },
