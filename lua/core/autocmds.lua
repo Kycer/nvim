@@ -1,5 +1,50 @@
 local function augroup(name) return vim.api.nvim_create_augroup('nvim_' .. name, { clear = true }) end
 
+-- Normal 和命令行模式强制使用英文；进入 Insert 时恢复离开前的 Rime 中英文状态。
+-- 直接控制 Rime 的 ascii_mode，不依赖 keyboard-us，也不模拟 Shift。
+local function call_rime(method, args)
+  if vim.fn.executable('busctl') ~= 1 then return end
+
+  local command = {
+    'busctl',
+    '--user',
+    'call',
+    'org.fcitx.Fcitx5',
+    '/rime',
+    'org.fcitx.Fcitx.Rime1',
+    method,
+  }
+  vim.list_extend(command, args or {})
+  return vim.system(command, { text = true }):wait()
+end
+
+local function set_rime_ascii_mode(enabled)
+  call_rime('SetAsciiMode', { 'b', tostring(enabled) })
+end
+
+local previous_rime_ascii_mode = true
+local rime_group = augroup('rime_auto_switch')
+
+vim.api.nvim_create_autocmd('InsertLeave', {
+  group = rime_group,
+  callback = function()
+    local result = call_rime('IsAsciiMode')
+    local mode = result and result.code == 0 and result.stdout:match('b%s+(%a+)') or nil
+    if mode then previous_rime_ascii_mode = mode == 'true' end
+    set_rime_ascii_mode(true)
+  end,
+})
+
+vim.api.nvim_create_autocmd('InsertEnter', {
+  group = rime_group,
+  callback = function() set_rime_ascii_mode(previous_rime_ascii_mode) end,
+})
+
+vim.api.nvim_create_autocmd({ 'VimEnter', 'CmdlineEnter', 'CmdlineLeave' }, {
+  group = rime_group,
+  callback = function() set_rime_ascii_mode(true) end,
+})
+
 -- 打开实际文件时再初始化原生 LSP；Dashboard 启动无需加载 LSP 和补全模块。
 vim.api.nvim_create_autocmd({ 'BufReadPre', 'BufNewFile' }, {
   group = augroup('lazy_lsp'),

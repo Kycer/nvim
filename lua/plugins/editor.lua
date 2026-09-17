@@ -36,10 +36,21 @@ return {
       -- optional: provides snippets for the snippet source
       'rafamadriz/friendly-snippets',
     },
-    build = function()
-      -- build the fuzzy matcher, optionally add a timeout to `pwait(timeout_ms)`
-      -- you can use `gb` in `:Lazy` to rebuild the plugin as needed
-      require('blink.cmp').build():pwait()
+    build = function(plugin)
+      local metadata = vim
+        .system({ 'cargo', 'metadata', '--no-deps', '--format-version', '1' }, {
+          cwd = plugin.dir,
+          text = true,
+        })
+        :wait()
+      if metadata.code ~= 0 then error(metadata.stderr) end
+
+      -- Blink only checks CARGO_TARGET_DIR, while Cargo also reads target-dir from its config.
+      local previous_target = vim.env.CARGO_TARGET_DIR
+      vim.env.CARGO_TARGET_DIR = vim.json.decode(metadata.stdout).target_directory
+      local ok, err = pcall(function() require('blink.cmp').build():wait() end)
+      vim.env.CARGO_TARGET_DIR = previous_target
+      if not ok then error(err) end
     end,
     opts = require('configs.blink'),
     opts_extend = { 'sources.default' },

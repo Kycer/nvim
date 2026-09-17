@@ -104,17 +104,6 @@ return {
         opts = require('configs.render-markdown'),
     },
     {
-        'keaising/im-select.nvim',
-        lazy = false,
-        config = function()
-            require('im_select').setup({
-                default_command = { 'fcitx5-remote' },
-                default_im_select = 'keyboard-us',
-                set_default_events = { 'VimEnter', 'InsertLeave', 'CmdlineLeave' },
-            })
-        end,
-    },
-    {
         'folke/sidekick.nvim',
         cmd = 'Sidekick',
         opts = require('configs.sidekick'),

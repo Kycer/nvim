@@ -37,12 +37,7 @@ oil.setup({
 
     -- 保留原有别名，避免影响既有使用习惯。
     ['<C-r>'] = 'actions.refresh',
-    ['<leader>y'] = 'actions.yank_entry',
     ['g.'] = false,
-    ['zh'] = 'actions.toggle_hidden',
-    ['\\'] = { 'actions.select', opts = { horizontal = true } },
-    ['|'] = { 'actions.select', opts = { vertical = true } },
-    ['`'] = 'actions.parent',
     ['gd'] = {
       desc = 'Toggle file detail view',
       callback = function()

@@ -58,9 +58,36 @@ local function mode_component()
   return ' ' .. mode[1] .. ' |'
 end
 
+local git_branches = {}
+
+local function project_branch()
+  local win = tonumber(vim.g.statusline_winid)
+  local cwd = vim.fn.getcwd(win and vim.api.nvim_win_is_valid(win) and win or 0)
+  local cached = git_branches[cwd]
+  if not cached then
+    cached = { head = '', updated = 0 }
+    git_branches[cwd] = cached
+  end
+
+  -- Keep Git queries out of the synchronous statusline redraw path.
+  if not cached.pending and (cached.updated == 0 or vim.uv.now() - cached.updated > 2000) then
+    cached.pending = true
+    vim.system({ 'git', '-C', cwd, 'symbolic-ref', '--quiet', '--short', 'HEAD' }, { text = true }, function(result)
+      vim.schedule(function()
+        cached.head = result.code == 0 and vim.trim(result.stdout) or ''
+        cached.updated = vim.uv.now()
+        cached.pending = false
+        vim.cmd.redrawstatus()
+      end)
+    end)
+  end
+  return cached.head
+end
+
 local function git_component(buf)
   local status = vim.b[buf].gitsigns_status_dict or {}
   local head = status.head or vim.b[buf].gitsigns_head
+  if not head or head == '' then head = project_branch() end
   if not head or head == '' then return '' end
 
   local parts = { ' ', escape(head) }
@@ -134,6 +161,17 @@ function M.render()
   })
 end
 
-function M.setup() vim.o.statusline = "%!v:lua.require('configs.statusline').render()" end
+function M.setup()
+  vim.o.statusline = "%!v:lua.require('configs.statusline').render()"
+  vim.api.nvim_create_autocmd({ 'BufEnter', 'DirChanged', 'FocusGained', 'TermClose', 'BufWritePost' }, {
+    group = vim.api.nvim_create_augroup('StatuslineGitBranch', { clear = true }),
+    callback = function()
+      for _, cached in pairs(git_branches) do
+        cached.updated = 0
+      end
+      vim.cmd.redrawstatus()
+    end,
+  })
+end
 
 return M
