@@ -22,6 +22,81 @@ end
 
 -- Explorer actions ----------------------------------------------------------
 
+local explorer_git_icons = {
+  [' '] = { '', 'SnacksPickerDimmed' },
+  M = { '', 'SnacksPickerGitStatusModified' },
+  A = { '', 'SnacksPickerGitStatusAdded' },
+  D = { '', 'SnacksPickerGitStatusDeleted' },
+  R = { '', 'SnacksPickerGitStatusRenamed' },
+  C = { '', 'SnacksPickerGitStatusCopied' },
+  T = { '', 'SnacksPickerGitStatusModified' },
+  U = { '', 'SnacksPickerGitStatusUnmerged' },
+  ['?'] = { '', 'SnacksPickerGitStatusUntracked' },
+  ['!'] = { '', 'SnacksPickerGitStatusIgnored' },
+}
+
+local function format_explorer(item, picker)
+  local ret = Snacks.picker.format.file(item, picker)
+  if not item.status then return ret end
+
+  local status = require('snacks.picker.source.git').git_status(item.status)
+  local function icon(code, staged)
+    local entry = explorer_git_icons[code]
+    local hl = staged and code ~= ' ' and 'SnacksPickerGitStatusStaged' or entry[2]
+    return { entry[1] .. ' ', hl }
+  end
+
+  -- Left: index; right: worktree. A dim circle marks an unchanged column.
+  -- Conflicts, untracked and ignored entries have one distinct icon each.
+  local icons
+  if status.unmerged then
+    icons = { icon('U'), { '  ' } }
+  elseif status.status == 'untracked' or status.status == 'ignored' then
+    icons = { icon(item.status:sub(1, 1)), { '  ' } }
+  else
+    icons = { icon(item.status:sub(1, 1), true), icon(item.status:sub(2, 2)) }
+  end
+
+  for _, part in ipairs(ret) do
+    local badge = part.virt_text and part.virt_text[1]
+    if badge and type(badge[2]) == 'string' and badge[2]:match('^SnacksPickerGitStatus') then part.virt_text = icons end
+  end
+  return ret
+end
+
+local function watch_explorer_git(picker)
+  local pending = false
+  local function refresh()
+    if pending or picker.closed then return end
+    pending = true
+    vim.defer_fn(function()
+      pending = false
+      if picker.closed then return end
+
+      local function find()
+        if picker.closed then return end
+        picker.list:set_target()
+        picker:find()
+      end
+
+      -- The built-in watcher only covers open directories and .git/index.
+      -- Invalidate cached state after returning from external Git/file edits.
+      require('snacks.explorer.tree'):refresh(picker:cwd())
+      require('snacks.explorer.git').update(picker:cwd(), {
+        untracked = picker.opts.git_untracked,
+        on_update = find,
+      })
+      -- Calling find directly preserves an active search and the cursor.
+      find()
+    end, 150)
+  end
+
+  -- Window-owned autocmds are removed automatically when the picker closes.
+  picker.list.win:on({ 'FocusGained', 'TermLeave', 'TermClose' }, refresh)
+  picker.list.win:on('WinEnter', refresh, { buf = true })
+  picker.list.win:on('User', refresh, { pattern = 'GitSignsUpdate' })
+end
+
 local function selected_explorer_paths(picker)
   if vim.fn.mode():find('^[vV]') then picker.list:select() end
 
@@ -209,6 +284,14 @@ local picker = {
       -- 打开 Explorer 时定位当前文件，并在切换 Buffer 后自动跟随。
       follow_file = true,
       auto_close = false,
+      watch = true,
+      git_status = true,
+      git_status_open = true,
+      git_untracked = true,
+      format = format_explorer,
+      -- Keep diagnostics beside the filename, away from the Git badge.
+      formatters = { severity = { pos = 'left' } },
+      on_show = watch_explorer_git,
       ignored = true,
       exclude = { '.git' },
       focus = 'list',
